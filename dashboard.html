@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SentinelPilot — Autonomous SOC Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #020408;
+  --bg2:      #060d14;
+  --bg3:      #0a1628;
+  --border:   #0d2137;
+  --border2:  #1a3a5c;
+  --accent:   #00d4ff;
+  --accent2:  #ff3366;
+  --accent3:  #00ff88;
+  --warn:     #ff9500;
+  --critical: #ff3366;
+  --high:     #ff6b35;
+  --medium:   #ff9500;
+  --low:      #00d4ff;
+  --info:     #00ff88;
+  --text:     #c8d8e8;
+  --muted:    #3a5a7a;
+  --glow:     0 0 20px rgba(0,212,255,0.3);
+  --glow2:    0 0 20px rgba(255,51,102,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Animated grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scanline effect */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.15) 2px,
+    rgba(0,0,0,0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+#app { position: relative; z-index: 1; }
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border2);
+  background: rgba(6,13,20,0.95);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-icon {
+  width: 40px; height: 40px;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: var(--glow);
+  animation: logoGlow 3s ease infinite;
+  background: rgba(0,212,255,0.05);
+}
+
+@keyframes logoGlow {
+  0%,100% { box-shadow: 0 0 10px rgba(0,212,255,0.3); }
+  50% { box-shadow: 0 0 25px rgba(0,212,255,0.7); }
+}
+
+.logo-text {
+  font-family: 'Orbitron', monospace;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(0,212,255,0.5);
+}
+
+.logo-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.status-chip {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-chip.online {
+  background: rgba(0,255,136,0.1);
+  border: 1px solid rgba(0,255,136,0.3);
+  color: var(--info);
+}
+
+.status-chip.offline {
+  background: rgba(255,51,102,0.1);
+  border: 1px solid rgba(255,51,102,0.3);
+  color: var(--critical);
+}
+
+.pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.time-display {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+/* ── Main Layout ── */
+.main {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  min-height: calc(100vh - 73px);
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: rgba(6,13,20,0.8);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+
+.input-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.input-field {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(0,212,255,0.2);
+}
+
+select.input-field option { background: var(--bg3); }
+
+.btn-investigate {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.btn-investigate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+  z-index: -1;
+}
+
+.btn-investigate:hover {
+  color: var(--bg);
+  box-shadow: var(--glow);
+}
+
+.btn-investigate:hover::before { transform: scaleX(1); }
+
+.btn-investigate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-investigate.loading {
+  animation: btnPulse 1s ease infinite;
+}
+
+@keyframes btnPulse {
+  0%,100% { border-color: var(--accent); }
+  50% { border-color: rgba(0,212,255,0.3); }
+}
+
+/* Stat cards */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+/* Agent log */
+.agent-log {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-entry {
+  display: flex;
+  gap: 8px;
+  animation: fadeIn 0.3s ease;
+}
+
+.log-time { color: var(--border2); min-width: 60px; }
+.log-msg.ok { color: var(--info); }
+.log-msg.warn { color: var(--warn); }
+.log-msg.err { color: var(--critical); }
+.log-msg.info { color: var(--accent); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Content Area ── */
+.content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  opacity: 0.4;
+}
+
+.empty-icon {
+  font-size: 64px;
+  filter: grayscale(1);
+}
+
+.empty-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+/* Incident card */
+.incident-card {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  overflow: hidden;
+  animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.incident-header {
+  padding: 20px 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.incident-header.CRITICAL { border-top: 3px solid var(--critical); }
+.incident-header.HIGH     { border-top: 3px solid var(--high); }
+.incident-header.MEDIUM   { border-top: 3px solid var(--medium); }
+.incident-header.LOW      { border-top: 3px solid var(--low); }
+.incident-header.INFO     { border-top: 3px solid var(--info); }
+
+.incident-id {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.incident-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.severity-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-CRITICAL { background: rgba(255,51,102,0.15); color: var(--critical); border: 1px solid rgba(255,51,102,0.4); }
+.badge-HIGH     { background: rgba(255,107,53,0.15); color: var(--high);     border: 1px solid rgba(255,107,53,0.4); }
+.badge-MEDIUM   { background: rgba(255,149,0,0.15);  color: var(--medium);   border: 1px solid rgba(255,149,0,0.4); }
+.badge-LOW      { background: rgba(0,212,255,0.15);  color: var(--low);      border: 1px solid rgba(0,212,255,0.4); }
+.badge-INFO     { background: rgba(0,255,136,0.15);  color: var(--info);     border: 1px solid rgba(0,255,136,0.4); }
+
+.incident-body {
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.panel-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.summary-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 4px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.action-num {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  min-width: 20px;
+  font-weight: 700;
+}
+
+/* Confidence bar */
+.confidence-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.confidence-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--info));
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+.confidence-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  color: var(--info);
+  font-weight: 700;
+  min-width: 44px;
+}
+
+/* SPL query */
+.spl-block {
+  grid-column: 1 / -1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 16px;
+}
+
+.spl-code {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--accent2);
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+/* Events table */
+.events-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  animation: slideIn 0.5s ease 0.2s both;
+}
+
+.events-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.events-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+.events-count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.events-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.events-table th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+  text-transform: uppercase;
+}
+
+.events-table td {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.events-table tr:last-child td { border-bottom: none; }
+
+.events-table tr:hover td {
+  background: rgba(0,212,255,0.03);
+}
+
+.src-tag {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: rgba(0,212,255,0.08);
+  color: var(--accent);
+  border: 1px solid rgba(0,212,255,0.2);
+}
+
+/* Loading overlay */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 60px;
+}
+
+.radar {
+  width: 80px; height: 80px;
+  border: 2px solid var(--border2);
+  border-radius: 50%;
+  position: relative;
+}
+
+.radar::before, .radar::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+
+.radar::before {
+  inset: 12px;
+  border: 1px solid var(--border);
+}
+
+.radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(0,212,255,0.6));
+  animation: sweep 1.5s linear infinite;
+}
+
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 3px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* MITRE tag */
+.mitre-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 4px 10px;
+  background: rgba(255,51,102,0.08);
+  border: 1px solid rgba(255,51,102,0.25);
+  border-radius: 3px;
+  color: var(--critical);
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <div class="logo-text">SENTINELPILOT</div>
+      <div class="logo-sub">AUTONOMOUS SOC AGENT · SPLUNK MCP + GROQ AI</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="time-display" id="clock">--:--:--</div>
+    <div class="status-chip" id="statusChip">
+      <span class="pulse"></span>
+      <span id="statusText">CONNECTING</span>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Investigation Parameters</div>
+      <div class="input-group">
+        <label class="input-label">TIME RANGE</label>
+        <select class="input-field" id="timeRange">
+          <option value="-1h">Last 1 Hour</option>
+          <option value="-6h">Last 6 Hours</option>
+          <option value="-24h" selected>Last 24 Hours</option>
+          <option value="-7d">Last 7 Days</option>
+          <option value="-30d">Last 30 Days</option>
+        </select>
+      </div>
+      <div class="input-group" style="margin-top:12px">
+        <label class="input-label">SPLUNK INDEX</label>
+        <input class="input-field" id="indexInput" value="security" placeholder="e.g. security, main"/>
+      </div>
+      <div class="input-group" style="margin-top:12px">
+        <label class="input-label">MAX EVENTS</label>
+        <select class="input-field" id="maxAlerts">
+          <option value="5">5 events</option>
+          <option value="10" selected>10 events</option>
+          <option value="20">20 events</option>
+          <option value="50">50 events</option>
+        </select>
+      </div>
+      <button class="btn-investigate" id="investigateBtn" onclick="runInvestigation()">
+        ▶ INVESTIGATE
+      </button>
+    </div>
+
+    <div>
+      <div class="section-label">Mission Stats</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">TOTAL RUNS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statCritical" style="color:var(--critical)">0</div>
+          <div class="stat-label">CRITICAL</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statEvents">0</div>
+          <div class="stat-label">EVENTS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statConfidence" style="color:var(--info)">—</div>
+          <div class="stat-label">CONFIDENCE</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Agent Activity Log</div>
+      <div class="agent-log" id="agentLog">
+        <div class="log-entry">
+          <span class="log-time">SYSTEM</span>
+          <span class="log-msg info">SentinelPilot initialized</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-time">READY</span>
+          <span class="log-msg ok">Awaiting investigation request</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content" id="content">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🛡️</div>
+      <div class="empty-text">
+        NO ACTIVE INVESTIGATION<br><br>
+        CONFIGURE PARAMETERS AND<br>
+        CLICK INVESTIGATE TO BEGIN
+      </div>
+    </div>
+  </main>
+
+</div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8001';
+let totalRuns = 0;
+let criticalCount = 0;
+
+// ── Clock ──────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toTimeString().slice(0,8) + ' UTC+1';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Status Check ───────────────────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const r = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    const chip = document.getElementById('statusChip');
+    const text = document.getElementById('statusText');
+    if (r.ok) {
+      chip.className = 'status-chip online';
+      text.textContent = 'AGENT ONLINE';
+      addLog('SYSTEM', 'Backend connected', 'ok');
+    } else {
+      chip.className = 'status-chip offline';
+      text.textContent = 'AGENT OFFLINE';
+    }
+  } catch {
+    const chip = document.getElementById('statusChip');
+    const text = document.getElementById('statusText');
+    chip.className = 'status-chip offline';
+    text.textContent = 'AGENT OFFLINE';
+    addLog('ERROR', 'Cannot reach backend — is uvicorn running?', 'err');
+  }
+}
+checkStatus();
+
+// ── Agent Log ──────────────────────────────────────────────────────────────
+function addLog(time, msg, type = 'info') {
+  const log = document.getElementById('agentLog');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${type}">${msg}</span>`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Investigation ──────────────────────────────────────────────────────────
+async function runInvestigation() {
+  const btn = document.getElementById('investigateBtn');
+  const content = document.getElementById('content');
+
+  const params = {
+    time_range: document.getElementById('timeRange').value,
+    index:      document.getElementById('indexInput').value || 'security',
+    max_alerts: parseInt(document.getElementById('maxAlerts').value)
+  };
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⟳ SCANNING...';
+
+  document.getElementById('emptyState') && (document.getElementById('emptyState').style.display = 'none');
+
+  // Show loading
+  content.innerHTML = `
+    <div class="loading-overlay">
+      <div class="radar">
+        <div class="radar-sweep"></div>
+      </div>
+      <div class="loading-text">AGENT INVESTIGATING...</div>
+    </div>`;
+
+  addLog(new Date().toTimeString().slice(0,8), `Querying index=${params.index}`, 'info');
+  addLog(new Date().toTimeString().slice(0,8), `Time range: ${params.time_range}`, 'info');
+
+  try {
+    const r = await fetch(`${API_BASE}/investigate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.detail || `HTTP ${r.status}`);
+    }
+
+    const data = await r.json();
+    addLog(new Date().toTimeString().slice(0,8), `${data.total_events} events retrieved`, 'ok');
+    addLog(new Date().toTimeString().slice(0,8), `Severity: ${data.severity}`, data.severity === 'CRITICAL' ? 'err' : 'warn');
+    addLog(new Date().toTimeString().slice(0,8), `Confidence: ${(data.confidence_score*100).toFixed(0)}%`, 'ok');
+
+    // Update stats
+    totalRuns++;
+    if (data.severity === 'CRITICAL') criticalCount++;
+    document.getElementById('statTotal').textContent      = totalRuns;
+    document.getElementById('statCritical').textContent   = criticalCount;
+    document.getElementById('statEvents').textContent     = data.total_events;
+    document.getElementById('statConfidence').textContent = (data.confidence_score*100).toFixed(0)+'%';
+
+    renderReport(data, content);
+
+  } catch(e) {
+    content.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-text">INVESTIGATION FAILED<br><br>${e.message}</div>
+      </div>`;
+    addLog(new Date().toTimeString().slice(0,8), `Error: ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = '▶ INVESTIGATE';
+  }
+}
+
+// ── Render Report ──────────────────────────────────────────────────────────
+function renderReport(data, container) {
+  const sev = data.severity || 'INFO';
+  const conf = Math.round((data.confidence_score || 0) * 100);
+
+  // Parse MITRE techniques
+  const mitre = data.attack_pattern || '';
+  const mitreHtml = mitre.split(',').map(t =>
+    `<span class="mitre-tag">${t.trim()}</span>`
+  ).join(' ');
+
+  // Affected systems tags
+  const systemsHtml = (data.affected_systems || []).map(s =>
+    `<span class="tag">🖥 ${s}</span>`
+  ).join('');
+
+  // Actions
+  const actionsHtml = (data.recommended_actions || []).map((a, i) =>
+    `<div class="action-item">
+      <span class="action-num">${String(i+1).padStart(2,'0')}</span>
+      <span>${a}</span>
+    </div>`
+  ).join('');
+
+  // Events table rows
+  const rowsHtml = (data.raw_alerts || []).map(evt => {
+    let raw = evt._raw || '';
+    try { const p = JSON.parse(raw); raw = p.message || p.signature || raw; } catch {}
+    if (raw.length > 80) raw = raw.slice(0,77) + '...';
+    const time = (evt._time || '').split(' ')[1] || evt._time || '—';
+    return `<tr>
+      <td>${time}</td>
+      <td><span class="src-tag">${evt.sourcetype || '—'}</span></td>
+      <td>${evt.host || '—'}</td>
+      <td title="${evt._raw || ''}">${raw}</td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <!-- Incident Report -->
+    <div class="incident-card">
+      <div class="incident-header ${sev}">
+        <div>
+          <div class="incident-id">INCIDENT · ${data.incident_id}</div>
+          <div class="incident-title">${data.title}</div>
+          <div>${mitreHtml}</div>
+        </div>
+        <span class="severity-badge badge-${sev}">${sev}</span>
+      </div>
+
+      <div class="incident-body">
+        <div>
+          <div class="panel-title">SUMMARY</div>
+          <p class="summary-text">${data.summary}</p>
+          <div style="margin-top:14px">
+            <div class="panel-title">AFFECTED SYSTEMS</div>
+            <div class="tag-list">${systemsHtml || '<span style="color:var(--muted);font-size:12px">None identified</span>'}</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel-title">RECOMMENDED ACTIONS</div>
+          <div class="action-list">${actionsHtml}</div>
+          <div style="margin-top:16px">
+            <div class="panel-title">AI CONFIDENCE</div>
+            <div class="confidence-row">
+              <div class="confidence-bar">
+                <div class="confidence-fill" style="width:${conf}%"></div>
+              </div>
+              <span class="confidence-val">${conf}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="spl-block">
+          <div class="panel-title">SPL QUERY EXECUTED</div>
+          <div class="spl-code">${data.splunk_query}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events Table -->
+    <div class="events-card">
+      <div class="events-header">
+        <span class="events-title">RAW EVENTS</span>
+        <span class="events-count">${data.total_events} EVENTS RETRIEVED</span>
+      </div>
+      <table class="events-table">
+        <thead>
+          <tr>
+            <th>TIME</th>
+            <th>SOURCE TYPE</th>
+            <th>HOST</th>
+            <th>EVENT</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+}
+</script>
+</body>
+</html>
