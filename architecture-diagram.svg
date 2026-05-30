@@ -1,0 +1,160 @@
+<svg width="900" height="580" viewBox="0 0 900 580" xmlns="http://www.w3.org/2000/svg" font-family="'Courier New', monospace">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0c10"/>
+      <stop offset="100%" style="stop-color:#111827"/>
+    </linearGradient>
+    <linearGradient id="splunkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff5733;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#ff5733;stop-opacity:0.05"/>
+    </linearGradient>
+    <linearGradient id="claudeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0.05"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4b5563"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#00d4ff"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#ff5733"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#00ff88"/>
+    </marker>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="580" fill="url(#bgGrad)" rx="12"/>
+
+  <!-- Grid lines -->
+  <g opacity="0.04" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="58" x2="900" y2="58"/>
+    <line x1="0" y1="116" x2="900" y2="116"/>
+    <line x1="0" y1="174" x2="900" y2="174"/>
+    <line x1="0" y1="232" x2="900" y2="232"/>
+    <line x1="0" y1="290" x2="900" y2="290"/>
+    <line x1="0" y1="348" x2="900" y2="348"/>
+    <line x1="0" y1="406" x2="900" y2="406"/>
+    <line x1="0" y1="464" x2="900" y2="464"/>
+    <line x1="0" y1="522" x2="900" y2="522"/>
+    <line x1="150" y1="0" x2="150" y2="580"/>
+    <line x1="300" y1="0" x2="300" y2="580"/>
+    <line x1="450" y1="0" x2="450" y2="580"/>
+    <line x1="600" y1="0" x2="600" y2="580"/>
+    <line x1="750" y1="0" x2="750" y2="580"/>
+  </g>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" fill="#e8eaf0" font-size="18" font-weight="bold" letter-spacing="3">SENTINELPILOT — ARCHITECTURE</text>
+  <text x="450" y="54" text-anchor="middle" fill="#4b5563" font-size="10" letter-spacing="2">SPLUNK AGENTIC OPS HACKATHON 2026 · SECURITY TRACK</text>
+  <line x1="60" y1="64" x2="840" y2="64" stroke="#1e2330" stroke-width="1"/>
+
+  <!-- ── LAYER 1: User / Dashboard ── -->
+  <rect x="30" y="82" width="200" height="80" rx="8" fill="#111318" stroke="#1e2330" stroke-width="1.5"/>
+  <text x="130" y="104" text-anchor="middle" fill="#6b7280" font-size="9" letter-spacing="2">LAYER 1</text>
+  <text x="130" y="122" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">React Dashboard</text>
+  <text x="130" y="140" text-anchor="middle" fill="#6b7280" font-size="10">SentinelPilot UI</text>
+  <text x="130" y="155" text-anchor="middle" fill="#4b5563" font-size="9">localhost:5173</text>
+
+  <!-- ── LAYER 2: FastAPI Backend ── -->
+  <rect x="330" y="82" width="240" height="80" rx="8" fill="#111318" stroke="#00d4ff" stroke-width="1.5" filter="url(#glow)"/>
+  <text x="450" y="104" text-anchor="middle" fill="#00d4ff" font-size="9" letter-spacing="2">LAYER 2 · CORE</text>
+  <text x="450" y="122" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">FastAPI Backend</text>
+  <text x="450" y="140" text-anchor="middle" fill="#6b7280" font-size="10">SentinelPilot Agent Loop</text>
+  <text x="450" y="155" text-anchor="middle" fill="#4b5563" font-size="9">localhost:8000 · Render.com</text>
+
+  <!-- ── LAYER 3: Splunk MCP Server ── -->
+  <rect x="30" y="240" width="200" height="80" rx="8" fill="url(#splunkGrad)" stroke="#ff5733" stroke-width="1.5"/>
+  <text x="130" y="262" text-anchor="middle" fill="#ff5733" font-size="9" letter-spacing="2">SPLUNK MCP</text>
+  <text x="130" y="280" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">MCP Server</text>
+  <text x="130" y="298" text-anchor="middle" fill="#6b7280" font-size="10">App ID: 7931</text>
+  <text x="130" y="313" text-anchor="middle" fill="#4b5563" font-size="9">localhost:8888/mcp</text>
+
+  <!-- ── LAYER 3: Claude AI ── -->
+  <rect x="330" y="240" width="240" height="80" rx="8" fill="url(#claudeGrad)" stroke="#00d4ff" stroke-width="1.5"/>
+  <text x="450" y="262" text-anchor="middle" fill="#00d4ff" font-size="9" letter-spacing="2">ANTHROPIC</text>
+  <text x="450" y="280" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">Claude AI</text>
+  <text x="450" y="298" text-anchor="middle" fill="#6b7280" font-size="10">claude-sonnet-4</text>
+  <text x="450" y="313" text-anchor="middle" fill="#4b5563" font-size="9">Alert Correlation · Report Generation</text>
+
+  <!-- ── LAYER 3: Splunk Hosted Models ── -->
+  <rect x="660" y="240" width="210" height="80" rx="8" fill="url(#splunkGrad)" stroke="#ff5733" stroke-width="1.5"/>
+  <text x="765" y="262" text-anchor="middle" fill="#ff5733" font-size="9" letter-spacing="2">SPLUNK AI</text>
+  <text x="765" y="280" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">Hosted Models</text>
+  <text x="765" y="298" text-anchor="middle" fill="#6b7280" font-size="10">saia_generate_spl</text>
+  <text x="765" y="313" text-anchor="middle" fill="#4b5563" font-size="9">SPL Auto-Generation</text>
+
+  <!-- ── LAYER 4: Splunk Enterprise ── -->
+  <rect x="30" y="400" width="200" height="80" rx="8" fill="url(#splunkGrad)" stroke="#ff5733" stroke-width="1.5"/>
+  <text x="130" y="422" text-anchor="middle" fill="#ff5733" font-size="9" letter-spacing="2">DATA LAYER</text>
+  <text x="130" y="440" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">Splunk Enterprise</text>
+  <text x="130" y="458" text-anchor="middle" fill="#6b7280" font-size="10">Security Index · Logs</text>
+  <text x="130" y="473" text-anchor="middle" fill="#4b5563" font-size="9">Developer License · 6 months</text>
+
+  <!-- ── LAYER 4: Incident Reports ── -->
+  <rect x="330" y="400" width="240" height="80" rx="8" fill="#111318" stroke="#00ff88" stroke-width="1.5"/>
+  <text x="450" y="422" text-anchor="middle" fill="#00ff88" font-size="9" letter-spacing="2">OUTPUT</text>
+  <text x="450" y="440" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">Incident Reports</text>
+  <text x="450" y="458" text-anchor="middle" fill="#6b7280" font-size="10">JSON · Severity · MITRE ATT&amp;CK</text>
+  <text x="450" y="473" text-anchor="middle" fill="#4b5563" font-size="9">Recommended Actions · Confidence Score</text>
+
+  <!-- ── LAYER 4: Optional Ticketing ── -->
+  <rect x="660" y="400" width="210" height="80" rx="8" fill="#111318" stroke="#1e2330" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="765" y="422" text-anchor="middle" fill="#6b7280" font-size="9" letter-spacing="2">OPTIONAL</text>
+  <text x="765" y="440" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="bold">Jira / ServiceNow</text>
+  <text x="765" y="458" text-anchor="middle" fill="#6b7280" font-size="10">Auto Ticket Creation</text>
+  <text x="765" y="473" text-anchor="middle" fill="#4b5563" font-size="9">MCP Integration · Close the Loop</text>
+
+  <!-- ── ARROWS ── -->
+
+  <!-- Dashboard → FastAPI (HTTP REST) -->
+  <line x1="230" y1="122" x2="328" y2="122" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="279" y="114" text-anchor="middle" fill="#00d4ff" font-size="9">HTTP REST</text>
+
+  <!-- FastAPI → Splunk MCP -->
+  <line x1="380" y1="162" x2="200" y2="240" stroke="#ff5733" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="270" y="196" text-anchor="middle" fill="#ff5733" font-size="9" transform="rotate(-30,270,196)">JSON-RPC 2.0</text>
+
+  <!-- FastAPI → Claude AI -->
+  <line x1="450" y1="162" x2="450" y2="238" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="468" y="205" fill="#00d4ff" font-size="9">HTTPS</text>
+
+  <!-- FastAPI → Splunk Hosted Models -->
+  <line x1="520" y1="162" x2="700" y2="240" stroke="#ff5733" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="630" y="192" text-anchor="middle" fill="#ff5733" font-size="9" transform="rotate(30,630,192)">MCP Tool</text>
+
+  <!-- Splunk MCP → Splunk Enterprise -->
+  <line x1="130" y1="320" x2="130" y2="398" stroke="#ff5733" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="148" y="363" fill="#ff5733" font-size="9">SPL</text>
+
+  <!-- Claude AI → Incident Reports -->
+  <line x1="450" y1="320" x2="450" y2="398" stroke="#00ff88" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <text x="468" y="363" fill="#00ff88" font-size="9">JSON</text>
+
+  <!-- Incident Reports → Optional Ticketing -->
+  <line x1="572" y1="440" x2="658" y2="440" stroke="#4b5563" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="615" y="432" text-anchor="middle" fill="#4b5563" font-size="9">optional</text>
+
+  <!-- Splunk Enterprise → Splunk MCP (results back) -->
+  <line x1="150" y1="400" x2="150" y2="322" stroke="#6b7280" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="30" y="510" width="840" height="52" rx="6" fill="#111318" stroke="#1e2330" stroke-width="1"/>
+  <line x1="80" y1="530" x2="110" y2="530" stroke="#ff5733" stroke-width="1.5"/>
+  <text x="115" y="534" fill="#6b7280" font-size="10">Splunk MCP / Data Flow</text>
+  <line x1="240" y1="530" x2="270" y2="530" stroke="#00d4ff" stroke-width="1.5"/>
+  <text x="275" y="534" fill="#6b7280" font-size="10">Claude AI / HTTPS</text>
+  <line x1="390" y1="530" x2="420" y2="530" stroke="#00ff88" stroke-width="1.5"/>
+  <text x="425" y="534" fill="#6b7280" font-size="10">Output / Reports</text>
+  <line x1="530" y1="530" x2="560" y2="530" stroke="#4b5563" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="565" y="534" fill="#6b7280" font-size="10">Optional Integration</text>
+
+  <text x="450" y="552" text-anchor="middle" fill="#4b5563" font-size="9" letter-spacing="1">SENTINELPILOT v1.0 · EKPENYONG ASUQUO · SPLUNK AGENTIC OPS HACKATHON 2026</text>
+</svg>
