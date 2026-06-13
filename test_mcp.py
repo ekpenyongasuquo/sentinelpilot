@@ -1,3 +1,8 @@
+"""
+SentinelPilot — MCP Test Script
+Tests Splunk AI Assistant saia_generate_spl tool
+"""
+
 import asyncio
 import httpx
 from dotenv import load_dotenv
@@ -16,7 +21,7 @@ async def test():
 
     async with httpx.AsyncClient(verify=False, timeout=60.0) as client:
 
-        # Initialize
+        # Step 1 — Initialize
         await client.post(URL, headers=headers, json={
             "jsonrpc": "2.0", "id": 1, "method": "initialize",
             "params": {
@@ -26,27 +31,26 @@ async def test():
             }
         })
 
-        # Notification
+        # Step 2 — Notification
         await client.post(URL, headers=headers, json={
             "jsonrpc": "2.0",
             "method":  "notifications/initialized",
             "params":  {}
         })
 
-        # Call splunk_run_query
+        # Step 3 — Call saia_generate_spl
+        print("Testing saia_generate_spl...")
         r = await client.post(URL, headers=headers, json={
             "jsonrpc": "2.0", "id": 2,
             "method":  "tools/call",
             "params":  {
-                "name": "splunk_run_query",
+                "name": "saia_generate_spl",
                 "arguments": {
-                    "query":         "index=main | head 5",
-                    "earliest_time": "-24h",
-                    "latest_time":   "now"
+                    "prompt": "Find failed login attempts in the security index in the last 24 hours"
                 }
             }
         })
         print("Status:", r.status_code)
-        print("Response:", r.text[:1000])
+        print("Response:", r.text[:500])
 
 asyncio.run(test())

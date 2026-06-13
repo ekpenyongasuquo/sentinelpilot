@@ -1,9 +1,9 @@
 # SentinelPilot 🛡️
 
-> **Autonomous SOC Agent powered by Splunk MCP + Claude AI**  
+> **Autonomous SOC Agent powered by Splunk MCP Server + Splunk AI Assistant + Groq AI**  
 > Splunk Agentic Ops Hackathon 2026 — Security Track
 
-SentinelPilot is an AI agent that autonomously investigates security alerts in Splunk — correlating logs, enriching threat context, generating human-readable incident reports, and triaging threats without a human writing a single SPL query.
+SentinelPilot is an AI agent that autonomously investigates security alerts in Splunk — correlating logs, generating human-readable incident reports, and triaging threats without a human writing a single SPL query.
 
 **Think of it as a Level-1 SOC analyst that never sleeps.**
 
@@ -19,35 +19,41 @@ Security Operations Centers are overwhelmed. Analysts spend up to **40% of their
 
 ## ✅ Solution
 
-SentinelPilot connects to Splunk via the **Splunk MCP Server**, pulls high-severity alerts automatically, uses **Claude AI** to reason across multiple events to identify attack chains, enriches findings with threat intelligence, and produces structured incident briefs — all autonomously.
+SentinelPilot connects to Splunk via the **Splunk MCP Server**, uses **Splunk AI Assistant** to generate optimized SPL queries from natural language, fetches security events automatically, uses **Groq AI** to reason across multiple events and identify attack chains, and produces structured incident briefs — all autonomously.
 
 ### What it does:
-- 🔎 **Auto-Alert Triage** — Polls Splunk for high-severity alerts using MCP tools
-- 🧠 **LLM Correlation** — Reasons across multiple alerts to detect attack patterns
-- 📋 **Incident Reports** — Generates structured briefs: what happened, affected systems, recommended actions
-- 🤖 **Splunk Hosted Models** — Uses Splunk's native AI models for SPL generation
-- 🔗 **Action Loop** — Optionally opens tickets in Jira/ServiceNow to close the response loop
+- 🔎 **Auto-Alert Triage** — Fetches security events from Splunk using MCP tools
+- 🤖 **Splunk AI Assistant** — Uses `saia_generate_spl` (Splunk Hosted Models) to generate optimized SPL from natural language
+- 🧠 **AI Correlation** — Reasons across multiple alerts to detect attack patterns and MITRE ATT&CK techniques
+- 📋 **Incident Reports** — Generates structured briefs: severity, affected systems, recommended actions, confidence score
+- 🖥️ **Tactical Dashboard** — Real-time SOC interface showing the agent working step by step
 
 ---
 
 ## 🏗️ Architecture
 
-See [`architecture-diagram.png`](./architecture-diagram.png) in the root of this repository.
+See [`architecture_diagram.md`](./architecture_diagram.md) and [`architecture_diagram.png`](./architecture_diagram.png) at the root of this repository.
 
 ```
-User Dashboard (React)
+User Dashboard (dashboard.html)
         │
-        ▼
-FastAPI Backend (Python)
+        ▼ HTTP REST
+FastAPI Backend (src/api/main.py)
         │
-        ├──► Splunk MCP Server ──► Splunk Enterprise
-        │         (splunk_run_search, saia_generate_spl)
+        ├──► Splunk MCP Server (JSON-RPC 2.0)
+        │         saia_generate_spl  → Splunk AI Assistant (Hosted Models)
+        │         splunk_run_query   → Fetch security events
+        │         splunk_get_indexes → Discover data sources
+        │         splunk_get_info    → Instance metadata
         │
-        ├──► Claude API (claude-sonnet-4)
-        │         (Alert correlation + report generation)
+        ├──► Groq AI API
+        │         llama-3.3-70b-versatile
+        │         Alert correlation + MITRE ATT&CK classification
+        │         Structured incident report generation
         │
-        └──► Splunk Hosted Models
-                  (SPL auto-generation)
+        └──► Splunk Enterprise 10.2.3
+                  security index — Windows Events, Network, AV logs
+                  _internal index — Platform operational logs
 ```
 
 ---
@@ -56,10 +62,10 @@ FastAPI Backend (Python)
 
 ### Prerequisites
 - Python 3.10+
-- Splunk Enterprise (free trial or Developer License)
+- Splunk Enterprise 10.x (free trial or Developer License)
 - Splunk MCP Server installed (Splunkbase App ID: 7931)
-- Anthropic API key
-- Node.js 18+ (for dashboard)
+- Splunk AI Assistant installed (Splunkbase)
+- Groq API key (free at console.groq.com)
 
 ### 1. Clone the repository
 ```bash
@@ -71,6 +77,7 @@ cd sentinelpilot
 ```bash
 python -m venv venv
 venv\Scripts\activate        # Windows
+source venv/bin/activate     # Linux/Mac
 pip install -r requirements.txt
 ```
 
@@ -78,34 +85,40 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 ```
+
 Edit `.env` with your credentials:
 ```env
 SPLUNK_HOST=localhost
 SPLUNK_PORT=8089
-SPLUNK_TOKEN=your_splunk_bearer_token
-ANTHROPIC_API_KEY=your_anthropic_api_key
-SPLUNK_MCP_URL=http://localhost:8888/mcp
+SPLUNK_TOKEN=your_splunk_mcp_encrypted_token
+SPLUNK_MCP_URL=https://localhost:8089/services/mcp
+SPLUNK_REST_TOKEN=your_splunk_rest_api_token
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+APP_PORT=8001
 ```
 
 ### 4. Configure Splunk MCP Server
-- In Splunk Web, go to **Apps → Splunk MCP Server → Configuration**
-- Enable the MCP Server
-- Create a service account with the `mcp_user` role
-- Copy the bearer token to your `.env` file
+- In Splunk Web go to **Apps → Splunk MCP Server**
+- Enable Token Authentication: **Settings → Tokens → Enable**
+- Create `mcp_user` role: **Settings → Roles → New Role**
+  - Add capabilities: `mcp_tool_admin`, `mcp_tool_execute`
+- Assign `mcp_user` role to your admin user
+- Generate MCP Encrypted Token from inside the MCP Server app
+- Copy token to `SPLUNK_TOKEN` in your `.env` file
 
-### 5. Run the backend
+### 5. Load sample security data
 ```bash
-uvicorn src.api.main:app --reload --port 8000
+python load_sample_data.py
 ```
 
-### 6. Run the dashboard
+### 6. Run the backend
 ```bash
-cd src/dashboard
-npm install
-npm run dev
+uvicorn src.api.main:app --reload --port 8001
 ```
 
-Open `http://localhost:5173` in your browser.
+### 7. Open the dashboard
+Open `dashboard.html` in your browser.
 
 ---
 
@@ -114,29 +127,18 @@ Open `http://localhost:5173` in your browser.
 ```
 sentinelpilot/
 ├── src/
-│   ├── agent/
-│   │   ├── sentinel_agent.py      # Core agent loop
-│   │   ├── splunk_mcp_client.py   # MCP Server connection
-│   │   ├── alert_correlator.py    # LLM correlation logic
-│   │   └── report_generator.py    # Incident report builder
-│   ├── api/
-│   │   ├── main.py                # FastAPI app entry point
-│   │   ├── routes/
-│   │   │   ├── alerts.py          # Alert endpoints
-│   │   │   ├── investigations.py  # Investigation endpoints
-│   │   │   └── reports.py         # Report endpoints
-│   │   └── models.py              # Pydantic data models
-│   └── dashboard/                 # React frontend
-│       ├── src/
-│       │   ├── App.jsx
-│       │   ├── components/
-│       │   └── pages/
-│       └── package.json
-├── tests/
+│   └── api/
+│       └── main.py                # FastAPI backend — agent orchestration
 ├── docs/
-├── architecture-diagram.png       # Required by hackathon rules
-├── requirements.txt
-├── .env.example
+│   ├── DEMO_SCRIPT.md             # Demo video script
+│   └── DEVPOST_SUBMISSION.md      # Full Devpost submission text
+├── architecture_diagram.md        # Architecture diagram (Markdown)
+├── architecture_diagram.png       # Architecture diagram (PNG)
+├── dashboard.html                 # Tactical SOC dashboard
+├── load_sample_data.py            # Sample security data loader
+├── test_mcp.py                    # MCP connection test script
+├── requirements.txt               # Python dependencies
+├── .env.example                   # Environment variables template
 ├── LICENSE                        # MIT License
 └── README.md
 ```
@@ -145,23 +147,27 @@ sentinelpilot/
 
 ## 🔌 Splunk MCP Tools Used
 
-| Tool | Purpose |
-|------|---------|
-| `splunk_run_search` | Execute SPL queries to fetch alerts |
-| `saia_generate_spl` | Auto-generate SPL using Splunk Hosted Models |
-| `get_knowledge_objects` | Retrieve correlation rules and saved searches |
-| `list_indexes` | Discover available data sources |
+| Tool | Type | Purpose |
+|------|------|---------|
+| `saia_generate_spl` | Splunk AI Assistant | Generate optimized SPL from natural language |
+| `saia_explain_spl` | Splunk AI Assistant | Explain SPL queries |
+| `saia_optimize_spl` | Splunk AI Assistant | Optimize SPL performance |
+| `saia_ask_splunk_question` | Splunk AI Assistant | Answer questions about Splunk data |
+| `splunk_run_query` | Splunk MCP Server | Execute SPL to fetch security events |
+| `splunk_get_indexes` | Splunk MCP Server | Discover available data sources |
+| `splunk_get_info` | Splunk MCP Server | Retrieve Splunk instance metadata |
+| `splunk_get_knowledge_objects` | Splunk MCP Server | Access saved searches |
 
 ---
 
 ## 🧠 AI Components
 
-| Component | Technology |
-|-----------|-----------|
-| Alert Correlation | Claude claude-sonnet-4 via Anthropic API |
-| SPL Generation | Splunk AI Assistant (Hosted Models) |
-| Incident Summarization | Claude claude-sonnet-4 |
-| Threat Classification | Claude claude-sonnet-4 |
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| SPL Generation | Splunk AI Assistant (`saia_generate_spl`) | Natural language to optimized SPL |
+| Alert Correlation | Groq `llama-3.3-70b-versatile` | Identify attack chains |
+| Incident Summarization | Groq `llama-3.3-70b-versatile` | Plain English summaries |
+| Threat Classification | Groq `llama-3.3-70b-versatile` | MITRE ATT&CK mapping |
 
 ---
 
@@ -169,31 +175,33 @@ sentinelpilot/
 
 ```json
 {
-  "incident_id": "INC-2026-0042",
-  "severity": "HIGH",
-  "title": "Possible Lateral Movement — Credential Stuffing Pattern Detected",
-  "summary": "Multiple failed login attempts from 3 external IPs targeting
-               the same internal service account across 4 hosts over 2 hours.",
-  "affected_systems": ["host-srv-01", "host-srv-04", "host-db-02"],
-  "attack_pattern": "T1110.003 - Password Spraying",
+  "incident_id": "INC-DFA1E8BB",
+  "severity": "CRITICAL",
+  "title": "Ransomware and Lateral Movement Detected",
+  "summary": "Multiple failed login attempts, mass file encryption, and unusual privilege assignments detected. A Trojan was quarantined and DNS tunneling with data exfiltration to Russia observed.",
+  "affected_systems": ["DESKTOP-MIM6KVQ", "SERVER-DB-01"],
+  "attack_pattern": "T1486 - Data Encrypted for Impact, T1021 - Remote Services",
   "recommended_actions": [
-    "Isolate host-srv-01 immediately",
-    "Reset credentials for affected service account",
-    "Block source IPs at perimeter firewall"
+    "Isolate affected systems immediately",
+    "Run full antivirus scan on all systems",
+    "Change all passwords and enable MFA",
+    "Block external IP 185.220.101.47 at firewall"
   ],
-  "splunk_query": "index=security sourcetype=WinEventLog EventCode=4625 ...",
-  "confidence_score": 0.91
+  "splunk_query": "index=security earliest=-24h | head 10 | table _time, source, sourcetype, host, _raw",
+  "spl_source": "splunk_ai_assistant",
+  "confidence_score": 0.95,
+  "total_events": 10
 }
 ```
 
 ---
 
-## 🏆 Hackathon Track
+## 🏆 Hackathon Tracks
 
-**Primary:** Security  
+**Primary Track:** Security  
 **Special Awards Targeted:**
-- Best Use of Splunk MCP Server
-- Best Use of Splunk Hosted Models
+- Best Use of Splunk MCP Server ($1,000)
+- Best Use of Splunk Hosted Models ($1,000)
 
 ---
 
@@ -205,6 +213,6 @@ MIT License — see [LICENSE](./LICENSE) for details.
 
 ## 👤 Author
 
-**Ekpenyong Asuquo**  
+**Ekpenyong Mfon**  
 GitHub: [@ekpenyongasuquo](https://github.com/ekpenyongasuquo)  
-Hugging Face: [emfon](https://huggingface.co/emfon)
+Devpost: [ekpenyongasuquo](https://devpost.com/ekpenyongasuquo)
